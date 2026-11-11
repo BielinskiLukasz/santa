@@ -1,0 +1,123 @@
+rules_version = '2';
+
+// Sekretny Mikołaj — Firebase Spark (Firestore + Anonymous Auth).
+// Brak Cloud Functions: silnik działa w kliencie, reguły pilnują stanu współdzielonego.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null && request.auth.uid != null;
+    }
+    function lockPath(drawId) {
+      return /databases/$(database)/documents/draws/$(drawId)/state/lock;
+    }
+    function drawPath(drawId) {
+      return /databases/$(database)/documents/draws/$(drawId);
+    }
+    function unique(list) {
+      return list.toSet().size() == list.size();
+    }
+    function leaseExpired() {
+      return resource.data.acquiredAt == null
+        || request.time > resource.data.acquiredAt + duration.value(20, 's');
+    }
+    // Zapis wyniku musi iść w parze ze zwolnieniem blokady w tej samej transakcji
+    // oraz zwiększeniem epoki (ochrona ABA).
+    function commitValid(drawId) {
+      return signedIn()
+        && exists(lockPath(drawId))
+        && get(lockPath(drawId)).data.holder == request.auth.uid
+        && get(lockPath(drawId)).data.acquiredAt != null
+        && request.time < get(lockPath(drawId)).data.acquiredAt + duration.value(20, 's')
+        && getAfter(lockPath(drawId)).data.holder == null
+        && getAfter(lockPath(drawId)).data.epoch == get(lockPath(drawId)).data.epoch + 1
+        && request.resource.data.epoch == resource.data.epoch + 1
+        && unique(request.resource.data.takenReceivers)
+        && unique(request.resource.data.drawnGivers)
+        && request.resource.data.takenReceivers.size() > resource.data.takenReceivers.size()
+        && request.resource.data.constraints == resource.data.constraints
+        && request.resource.data.seed == resource.data.seed
+        && request.resource.data.adminSeesAll == resource.data.adminSeesAll;
+    }
+
+    match /draws/{drawId} {
+      // list zablokowane: identyfikator losowania jest capability.
+      allow list: if false;
+      allow get: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.id == drawId
+        && request.resource.data.adminUid == request.auth.uid
+        && request.resource.data.status == 'lobby'
+        && request.resource.data.roster.size() >= 2
+        && request.resource.data.roster.size() <= 10;
+
+      // Admin zmienia status / Start; uczestnik zapisuje wynik wyłącznie z ważną blokadą.
+      allow update: if signedIn() && (
+        (
+          request.auth.uid == resource.data.adminUid
+          && request.resource.data.status in ['lobby', 'running', 'done']
+          && request.resource.data.constraints == resource.data.constraints
+        )
+        || commitValid(drawId)
+      );
+      allow delete: if false;
+
+      match /participants/{token} {
+        // Token = ID dokumentu. Można go odczytać tylko po znajomości ID
+        // i tylko będąc uwierzytelnionym jako właściciel (Anonymous Auth).
+        allow list: if false;
+        // Przed dołączeniem dokument nie ma jeszcze uid – sam token (capability)
+        // upoważnia do jego odczytu, ale nie do odczytu cudzego dokumentu.
+        allow get: if signedIn()
+          && (resource.data.uid == null || resource.data.uid == request.auth.uid);
+        allow create: if signedIn()
+          && getAfter(drawPath(drawId)).data.adminUid == request.auth.uid
+          && request.resource.data.uid == null
+          && request.resource.data.encryptedResult == null;
+        allow update: if signedIn() && (
+          // dołączenie (claim)
+          (
+            resource.data.uid == null
+            && request.resource.data.uid == request.auth.uid
+            && request.resource.data.publicKey is map
+            && request.resource.data.encryptedResult == null
+          )
+          // ponowne powiązanie z nową przeglądarką w lobby,
+          // wyłącznie posiadaczowi tego samego klucza prywatnego (link ratunkowy)
+          || (
+            get(drawPath(drawId)).data.status == 'lobby'
+            && resource.data.publicKey == request.resource.data.publicKey
+            && resource.data.encryptedResult == null
+            && request.resource.data.uid == request.auth.uid
+            && request.resource.data.claimed == true
+          )
+          // jednorazowy zapis własnego szyfrogramu w ramach commitu
+          || (
+            resource.data.uid == request.auth.uid
+            && resource.data.encryptedResult == null
+            && request.resource.data.encryptedResult is string
+            && commitValid(drawId)
+          )
+        );
+        allow delete: if false;
+      }
+
+      match /state/lock {
+        allow get: if signedIn();
+        allow create: if signedIn()
+          && request.resource.data.holder == request.auth.uid
+          && request.resource.data.epoch == 0;
+        allow update: if signedIn()
+          && request.resource.data.epoch == resource.data.epoch + 1
+          && (
+            // przejęcie wolnej blokady
+            (resource.data.holder == null && request.resource.data.holder == request.auth.uid)
+            // przejęcie po wygaśnięciu dzierżawy (20 s, czas serwera)
+            || (leaseExpired() && request.resource.data.holder == request.auth.uid)
+            // zwolnienie przez właściciela
+            || (resource.data.holder == request.auth.uid && request.resource.data.holder == null)
+          );
+        allow delete: if false;
+      }
+    }
+  }
+}
