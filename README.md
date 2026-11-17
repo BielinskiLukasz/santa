@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/BielinskiLukasz/santa/actions/workflows/ci.yml/badge.svg)](https://github.com/BielinskiLukasz/santa/actions/workflows/ci.yml)
 
-Statyczna aplikacja planowana do rodzinnego losowania prezentów. Dostępna jest strona startowa oraz niezależny silnik fazy 1. Interfejs wydarzenia, konfiguracja uczestników i przechowywanie danych nie są jeszcze zaimplementowane.
+Statyczna aplikacja planowana do rodzinnego losowania prezentów. Dostępna jest strona startowa oraz niezależne moduły silnika, stanu i szyfrowanego zapisu. Ekrany konfiguracji i wydarzenia nie są jeszcze zaimplementowane.
 
 ## Uruchomienie
 
@@ -57,9 +57,31 @@ if (!validateSetup(state.participants, state.rules).ok) throw new Error('Niepopr
 const result = drawFor(state, 'p0', createCryptoRandom(globalThis.crypto));
 ```
 
-`result.draw` i `result.state` zawierają poufne przydziały. Nie należy ich zapisywać w logach ani pokazywać na publicznym ekranie. Szyfrowanie i kontrola dostępu do ujawnienia są poza zakresem fazy 1.
+`result.draw` i `result.state` zawierają poufne przydziały. Nie należy ich zapisywać w logach ani pokazywać na publicznym ekranie. Szyfrowanie zapewnia moduł fazy 2; kontrola prezentacji wyniku należy do kolejnych faz.
 
 `npm run test` obejmuje przypadki brzegowe, porównanie z przeszukiwaniem siłowym oraz symulacje pełnych losowań.
+
+## Stan i szyfrowany zapis
+
+`src/state/` zawiera reduktor, walidację stanu i mechanizm rejestrowania migracji schematu. Bieżąca wersja zapisu to 1; ponieważ nie istnieje wcześniejszy oficjalny format, migracje starszych wersji trzeba jawnie dostarczyć. `LOCKED` oznacza zamkniętą sesję magazynu, a zaszyfrowany stan zachowuje ostatnią fazę od `SETUP` do `DONE`.
+
+`src/storage/` udostępnia `SecureEventStore`. Hasło o długości co najmniej 8 znaków jest używane z PBKDF2-SHA-256 (600 000 iteracji) do wyprowadzenia niewyciągalnego klucza AES-256-GCM. Zapis zawiera jedynie wersję, sól, IV i szyfrogram; wyciszenie jest trzymane osobno. Każda zmiana jest zapisywana kolejno, a nowy wynik jest zwracany dopiero po udanym zapisie.
+
+```ts
+import { createInitialState } from './src/state';
+import { SecureEventStore } from './src/storage';
+
+const store = new SecureEventStore(window.localStorage, window.crypto);
+// W aplikacji hasło podaje operator; nie zapisuj go w kodzie.
+const password = 'haslo-tylko-do-przykladu';
+const state = store.hasSavedState()
+  ? await store.unlock(password)
+  : await store.initialize(password, createInitialState(2026));
+```
+
+`dispatch` obsługuje konfigurację, budżet i zakończenie ujawnienia. `draw` wymaga źródła losowości; `undoLastDraw` i `resetDrawing` wymagają ponownego hasła i potwierdzenia. `exportBackup` i `importBackup` pracują na zaszyfrowanym tekście; nadpisanie wymaga potwierdzenia. `resetAll('RESET')` usuwa zapis także przy zablokowanej sesji. Po odblokowaniu przerwane ujawnienie jest oznaczane jako zakończone, zanim stan zostanie zwrócony.
+
+Stan zwracany przez magazyn pozostaje jawny w pamięci aktywnej sesji. Przyszły interfejs musi natychmiast usuwać wynik z ekranu i wywoływać `COMPLETE_REVEAL` po zamknięciu lub utracie fokusu; obsługa zdarzeń interfejsu należy do fazy 5. Jednoczesne korzystanie z wielu kart nie jest wspierane; magazyn wykrywa zmianę zapisu, ale `localStorage` nie zapewnia transakcji między kartami.
 
 ## GitHub Pages
 
