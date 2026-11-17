@@ -6,4 +6,4 @@ Obecna nazwa repozytorium to `santa`; rekomendowana nazwa to `zwierzeta-losuja`.
 - Specyfikacje: `docs/specs/` w katalogu głównym repozytorium.
 - Plany faz: `docs/stages/` w katalogu głównym repozytorium.
 
-`index.html` jest przeglądarką dokumentacji, a nie aplikacją do losowania prezentów.
+`index.html` zawiera stronę startową fazy 0. Aplikacja do losowania prezentów powstanie w kolejnych fazach.
