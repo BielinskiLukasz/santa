@@ -18,11 +18,21 @@ export interface SceneProps {
   readonly lightsOn: boolean;
   readonly moods?: Readonly<Record<string, AnimalMood>>;
   readonly holdingId?: string | null;
+  /** Participant currently indicated as the next to draw. */
+  readonly selectedId?: string | null;
+  /** Participant walking to the hat (its figure animates to the hat stump). */
+  readonly actorId?: string | null;
+  /** Shows the envelope rising out of the hat during the ceremony. */
+  readonly hatEnvelope?: boolean;
+  readonly onSelect?: (participantId: string) => void;
   readonly description?: string;
   readonly className?: string;
 }
 
 const ANIMAL_BASE = 1.55;
+
+// Where the drawing animal stands while taking the envelope from the hat.
+export const HAT_ACTOR = { x: 842, y: 922, scale: 1.62 } as const;
 
 function seeded(seed: number): () => number {
   let state = seed;
@@ -180,6 +190,10 @@ export const Scene = memo(function Scene({
   lightsOn,
   moods,
   holdingId,
+  selectedId,
+  actorId,
+  hatEnvelope,
+  onSelect,
   description,
   className,
 }: SceneProps) {
@@ -249,19 +263,48 @@ export const Scene = memo(function Scene({
       <BudgetBoard text={budgetText} />
       <Campfire />
       <Hat />
+      {hatEnvelope ? (
+        <g transform="translate(960 824) scale(1.35)" data-hat-envelope>
+          <g className="envelope-rise">
+            <EnvelopeFigure />
+          </g>
+        </g>
+      ) : null}
 
       {participants.map((person, index) => {
         const slot = slots[index];
         if (!slot) return null;
         const factor = slot.scale * ANIMAL_BASE;
         const mood = moods?.[person.id] ?? (holdingId === person.id ? 'holding-envelope' : 'cheerful');
+        const isActor = actorId === person.id;
+        const posX = isActor ? HAT_ACTOR.x : slot.x;
+        const posY = isActor ? HAT_ACTOR.y : slot.y;
+        const posScale = isActor ? HAT_ACTOR.scale : factor;
+        const selected = selectedId === person.id;
         return (
-          <g key={person.id} data-animal-slot data-participant={person.id}>
+          <g
+            key={person.id}
+            data-animal-slot
+            data-participant={person.id}
+            onClick={onSelect ? () => onSelect(person.id) : undefined}
+            style={onSelect ? { cursor: 'pointer' } : undefined}
+          >
+            {selected ? (
+              <ellipse cx={slot.x} cy={slot.y + 12} rx={76} ry={18} fill="none" stroke="#ddbc89" strokeWidth={3.5} opacity={0.95} />
+            ) : null}
             <ellipse cx={slot.x} cy={slot.y + 10} rx={62} ry={13} fill="#a3b8a9" opacity={0.55} />
             <rect x={slot.x - 54} y={slot.y - 6} width={108} height={19} rx={9.5} fill="#9c7155" />
             <ellipse cx={slot.x} cy={slot.y - 6} rx={54} ry={8} fill="#b0825f" />
-            <g transform={`translate(${slot.x} ${slot.y}) scale(${factor}) translate(-60 -126)`}>
-              <AnimalFigure kind={person.animal} scarf={scarves[index] ?? '#b45a4a'} mood={mood} />
+            <g
+              style={{
+                transform: `translate(${posX}px, ${posY}px) scale(${posScale})`,
+                transformBox: 'view-box',
+                transition: 'transform 1500ms cubic-bezier(0.45, 0, 0.25, 1)',
+              }}
+            >
+              <g transform="translate(-60 -126)">
+                <AnimalFigure kind={person.animal} scarf={scarves[index] ?? '#b45a4a'} mood={mood} />
+              </g>
             </g>
             <g
               data-badge={person.drawn ? 'drawn' : 'empty'}
@@ -274,7 +317,7 @@ export const Scene = memo(function Scene({
               </g>
             </g>
             <g transform={`translate(${slot.x} ${slot.y + 34})`} data-nameplate>
-              <rect x={-66} y={-17} width={132} height={36} rx={9} fill="#9c7155" />
+              <rect x={-66} y={-17} width={132} height={36} rx={9} fill={selected ? '#b96f52' : '#9c7155'} />
               <circle cx={-54} cy={0} r={3} fill="#7a5a43" />
               <circle cx={54} cy={0} r={3} fill="#7a5a43" />
               <text

@@ -1,14 +1,16 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Info, TriangleAlert, X } from 'lucide-react';
 import { pl } from '../i18n/pl';
 import { AdminZone } from './AdminZone';
 import { useEventController } from './controller';
 import { EventScreen } from './EventScreen';
+import { HelpOverlay } from './Help';
 import { LockedScreen } from './LockedScreen';
 import { PasswordGate } from './widgets';
 
 export default function App() {
   const controller = useEventController();
+  const [helpOpen, setHelpOpen] = useState(false);
   const {
     screen,
     hasSaved,
@@ -24,6 +26,7 @@ export default function App() {
     unlock,
     lockApp,
     dispatch,
+    drawParticipant,
     undoLastDraw,
     resetDrawing,
     exportBackup,
@@ -35,17 +38,29 @@ export default function App() {
     closeAdmin,
   } = controller;
 
-  // UI-SPEC §7: Ctrl+Shift+A opens the admin gate.
+  // UI-SPEC §7: Ctrl+Shift+A opens the admin gate; "?" or F1 opens help.
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 'a') {
         event.preventDefault();
         requestAdmin();
+        return;
+      }
+      const target = event.target as HTMLElement | null;
+      const editing =
+        target &&
+        (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable);
+      if (!editing && (event.key === '?' || event.key === 'F1')) {
+        event.preventDefault();
+        setHelpOpen(true);
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [requestAdmin]);
+
+  const openHelp = () => setHelpOpen(true);
+  const suspended = adminOpen || gateOpen || helpOpen;
 
   if (screen === 'booting' || (screen === 'app' && state === null)) {
     return (
@@ -89,6 +104,7 @@ export default function App() {
           onSetup={setupPassword}
           onUnlock={unlock}
           onResetAll={resetAll}
+          onHelp={openHelp}
           showNotice={showNotice}
         />
       ) : state ? (
@@ -96,9 +112,14 @@ export default function App() {
           <EventScreen
             state={state}
             busy={busy}
+            suspended={suspended}
             onOpenAdmin={requestAdmin}
+            onHelp={openHelp}
             onDispatch={dispatch}
+            onDraw={drawParticipant}
             onLock={lockApp}
+            onFinish={lockApp}
+            showNotice={showNotice}
           />
           {adminOpen ? (
             <AdminZone
@@ -106,6 +127,7 @@ export default function App() {
               state={state}
               busy={busy}
               onClose={closeAdmin}
+              onHelp={openHelp}
               onDispatch={dispatch}
               onUndo={undoLastDraw}
               onResetDrawing={resetDrawing}
@@ -120,6 +142,8 @@ export default function App() {
           ) : null}
         </>
       ) : null}
+
+      {helpOpen ? <HelpOverlay onClose={() => setHelpOpen(false)} /> : null}
     </>
   );
 }

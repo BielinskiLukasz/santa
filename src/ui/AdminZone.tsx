@@ -5,6 +5,7 @@ import {
   ArrowDown,
   ArrowUp,
   Check,
+  CircleHelp,
   Download,
   ListChecks,
   PawPrint,
@@ -106,6 +107,7 @@ export function AdminZone({
   state,
   busy,
   onClose,
+  onHelp,
   onDispatch,
   onUndo,
   onResetDrawing,
@@ -117,6 +119,7 @@ export function AdminZone({
   state: AppState;
   busy: boolean;
   onClose: () => void;
+  onHelp: () => void;
   onDispatch: Dispatch;
   onUndo: (password: string) => Promise<void>;
   onResetDrawing: (password: string) => Promise<void>;
@@ -221,13 +224,24 @@ export function AdminZone({
             <p className="mt-1 max-w-xl text-sm leading-relaxed text-cream/80">{pl.admin.subtitle}</p>
             <p className="mt-2 text-xs font-semibold uppercase tracking-wider text-gold">{pl.gate.sessionHint}</p>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="inline-flex min-h-11 items-center gap-2 rounded-full bg-cream px-4 text-sm font-bold text-forest transition hover:bg-paper"
-          >
-            <X size={16} aria-hidden="true" /> {pl.admin.close}
-          </button>
+          <span className="flex gap-2">
+            <button
+              type="button"
+              onClick={onHelp}
+              aria-label={pl.event.helpButton}
+              title={pl.event.helpButton}
+              className="grid h-11 w-11 place-items-center rounded-full border border-cream/50 text-cream transition hover:bg-cream/10"
+            >
+              <CircleHelp size={18} aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex min-h-11 items-center gap-2 rounded-full bg-cream px-4 text-sm font-bold text-forest transition hover:bg-paper"
+            >
+              <X size={16} aria-hidden="true" /> {pl.admin.close}
+            </button>
+          </span>
         </header>
 
         <div className="mt-4 grid gap-4 pb-8">

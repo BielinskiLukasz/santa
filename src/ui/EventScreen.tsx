@@ -1,11 +1,15 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
-import { Lock, Mail, PartyPopper, Settings } from 'lucide-react';
+import { CircleHelp, Lock, Mail, PartyPopper, Settings } from 'lucide-react';
 import { validateBudget } from '../engine';
+import type { Draw } from '../engine';
 import type { AppAction, AppState } from '../state';
 import { pl } from '../i18n/pl';
-import { Scene } from '../scene/Scene';
+import { animalName } from './animals';
+import { ceremonyTiming, cycleUndrawn } from './ceremony';
+import { CoverOverlay } from './CoverOverlay';
 import { errorText } from './controller';
+import { Scene } from '../scene/Scene';
 import { Field, GhostButton, MotionToggle, PrimaryButton, inputClass } from './widgets';
 
 export function formatAmount(amount: number, currency: string): string {
@@ -13,6 +17,8 @@ export function formatAmount(amount: number, currency: string): string {
 }
 
 type Dispatch = (action: AppAction) => Promise<AppState>;
+type Notify = (kind: 'info' | 'error', text: string) => void;
+type CeremonyStep = 'pick' | 'walk' | 'envelope' | 'cover' | 'return';
 
 function BudgetPanel({ state, busy, onDispatch }: { state: AppState; busy: boolean; onDispatch: Dispatch }) {
   const [amount, setAmount] = useState('');
@@ -49,7 +55,7 @@ function BudgetPanel({ state, busy, onDispatch }: { state: AppState; busy: boole
   };
 
   return (
-    <section className="w-full max-w-xl animate-fade-up rounded-3xl bg-paper p-7 text-ink shadow-2xl sm:p-8">
+    <section className="pointer-events-auto w-full max-w-xl animate-fade-up rounded-3xl bg-paper p-7 text-ink shadow-2xl sm:p-8">
       <h1 className="font-display text-3xl font-semibold">{pl.event.budgetTitle}</h1>
       <p className="mt-2 text-sm leading-relaxed text-mist">{pl.event.budgetIntro}</p>
       {saved !== null ? (
@@ -106,28 +112,153 @@ function BudgetPanel({ state, busy, onDispatch }: { state: AppState; busy: boole
 export function EventScreen({
   state,
   busy,
+  suspended,
   onOpenAdmin,
+  onHelp,
   onDispatch,
+  onDraw,
   onLock,
+  onFinish,
+  showNotice,
 }: {
   state: AppState;
   busy: boolean;
+  suspended: boolean;
   onOpenAdmin: () => void;
+  onHelp: () => void;
   onDispatch: Dispatch;
+  onDraw: (giverId: string) => Promise<Draw>;
   onLock: () => void;
+  onFinish: () => void;
+  showNotice: Notify;
 }) {
   const phase = state.event.phase;
   const drawnCount = state.draws.length;
 
-  const sceneParticipants = useMemo(() => {
-    const drawnIds = new Set(state.draws.map((draw) => draw.giverId));
-    return state.participants.map((person) => ({
-      id: person.id,
-      name: person.name,
-      animal: person.animal,
-      drawn: drawnIds.has(person.id),
-    }));
-  }, [state.participants, state.draws]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [step, setStep] = useState<CeremonyStep>('pick');
+  const [actorId, setActorId] = useState<string | null>(null);
+  const [pending, setPending] = useState<{ giverId: string; receiverId: string } | null>(null);
+  const timersRef = useRef<number[]>([]);
+  const finishingRef = useRef(false);
+  const timing = useMemo(
+    () => ceremonyTiming(window.matchMedia('(prefers-reduced-motion: reduce)').matches),
+    [],
+  );
+
+  const drawnIds = useMemo(() => new Set(state.draws.map((draw) => draw.giverId)), [state.draws]);
+  const selected = state.participants.find((person) => person.id === selectedId) ?? null;
+  const ceremonyBusy = step !== 'pick';
+
+  const later = useCallback((fn: () => void, ms: number) => {
+    timersRef.current.push(window.setTimeout(fn, ms));
+  }, []);
+
+  useEffect(() => {
+    const timers = timersRef.current;
+    return () => timers.forEach((timer) => window.clearTimeout(timer));
+  }, []);
+
+  // Leaving the drawing phase resets the ceremony to a clean slate.
+  useEffect(() => {
+    if (phase !== 'DRAWING') {
+      setStep('pick');
+      setActorId(null);
+      setSelectedId(null);
+      setPending(null);
+      finishingRef.current = false;
+    }
+  }, [phase]);
+
+  const select = useCallback(
+    (participantId: string) => {
+      if (suspended || step !== 'pick' || drawnIds.has(participantId)) return;
+      setSelectedId(participantId);
+    },
+    [drawnIds, step, suspended],
+  );
+
+  useEffect(() => {
+    if (phase !== 'DRAWING' || suspended) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (step !== 'pick') return;
+      const target = event.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable)
+      ) {
+        return;
+      }
+      if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+        event.preventDefault();
+        setSelectedId((current) => cycleUndrawn(state.participants, drawnIds, current, 1));
+      } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+        event.preventDefault();
+        setSelectedId((current) => cycleUndrawn(state.participants, drawnIds, current, -1));
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [drawnIds, phase, state.participants, step, suspended]);
+
+  const startDraw = async () => {
+    if (suspended || step !== 'pick') return;
+    if (selectedId === null) {
+      setSelectedId(cycleUndrawn(state.participants, drawnIds, null, 1));
+      return;
+    }
+    const giverId = selectedId;
+    setStep('walk');
+    setActorId(giverId);
+    let draw: Draw;
+    try {
+      // The assignment is encrypted and persisted before any reveal can happen.
+      draw = await onDraw(giverId);
+    } catch {
+      setActorId(null);
+      setStep('pick');
+      showNotice('error', pl.ceremony.drawFailed);
+      return;
+    }
+    setPending({ giverId, receiverId: draw.receiverId });
+    later(() => setStep('envelope'), timing.walkMs);
+    later(() => setStep('cover'), timing.walkMs + timing.envelopeMs);
+  };
+
+  const finishReveal = useCallback(async () => {
+    if (finishingRef.current || pending === null) return;
+    finishingRef.current = true;
+    try {
+      await onDispatch({ type: 'COMPLETE_REVEAL', giverId: pending.giverId });
+      showNotice('info', pl.ceremony.secretKept);
+    } catch (cause) {
+      showNotice('error', errorText(cause));
+    }
+    setStep('return');
+    setActorId(null);
+    later(() => {
+      setPending(null);
+      setSelectedId(null);
+      setStep('pick');
+      finishingRef.current = false;
+    }, timing.returnMs);
+  }, [later, onDispatch, pending, showNotice, timing.returnMs]);
+
+  const sceneParticipants = useMemo(
+    () =>
+      state.participants.map((person) => ({
+        id: person.id,
+        name: person.name,
+        animal: person.animal,
+        drawn: drawnIds.has(person.id),
+      })),
+    [drawnIds, state.participants],
+  );
+
+  const pendingGiver = pending ? state.participants.find((person) => person.id === pending.giverId) : undefined;
+  const pendingReceiver = pending
+    ? state.participants.find((person) => person.id === pending.receiverId)
+    : undefined;
 
   return (
     <div className="relative flex min-h-screen flex-col overflow-hidden bg-night text-cream">
@@ -136,6 +267,11 @@ export function EventScreen({
           participants={sceneParticipants}
           budgetText={state.event.budget !== null ? formatAmount(state.event.budget, state.event.currency) : null}
           lightsOn={phase === 'DONE'}
+          selectedId={step === 'pick' ? selectedId : null}
+          actorId={actorId}
+          hatEnvelope={step === 'envelope'}
+          moods={actorId !== null && step !== 'walk' && step !== 'pick' ? { [actorId]: 'holding-envelope' } : undefined}
+          onSelect={phase === 'DRAWING' ? select : undefined}
           className="h-full w-full"
         />
       </div>
@@ -167,6 +303,15 @@ export function EventScreen({
           </span>
           <button
             type="button"
+            onClick={onHelp}
+            aria-label={pl.event.helpButton}
+            title={pl.event.helpButton}
+            className="grid h-10 w-10 place-items-center rounded-full border border-cream/40 bg-night/30 transition hover:bg-cream/10"
+          >
+            <CircleHelp size={18} aria-hidden="true" />
+          </button>
+          <button
+            type="button"
             onClick={onOpenAdmin}
             aria-label={pl.event.openAdmin}
             title={pl.event.openAdmin}
@@ -186,9 +331,9 @@ export function EventScreen({
         </span>
       </header>
 
-      <main className="relative z-10 flex flex-1 items-start px-4 pb-10 pt-2 sm:px-8">
+      <main className="pointer-events-none relative z-10 flex flex-1 items-start px-4 pb-10 pt-2 sm:px-8">
         {phase === 'SETUP' ? (
-          <section className="w-full max-w-xl animate-fade-up rounded-3xl bg-paper p-7 text-ink shadow-2xl sm:p-8">
+          <section className="pointer-events-auto w-full max-w-xl animate-fade-up rounded-3xl bg-paper p-7 text-ink shadow-2xl sm:p-8">
             <h1 className="font-display text-3xl font-semibold">{pl.event.setupTitle}</h1>
             <p className="mt-2 text-sm leading-relaxed text-mist">{pl.event.setupBody}</p>
             <div className="mt-6">
@@ -200,17 +345,32 @@ export function EventScreen({
         {phase === 'BUDGET' ? <BudgetPanel state={state} busy={busy} onDispatch={onDispatch} /> : null}
 
         {phase === 'DRAWING' ? (
-          <section className="w-full max-w-md animate-fade-up rounded-3xl bg-paper/95 p-6 text-ink shadow-2xl">
+          <section className="pointer-events-auto w-full max-w-md animate-fade-up rounded-3xl bg-paper/95 p-6 text-ink shadow-2xl">
             <h1 className="font-display text-3xl font-semibold">{pl.event.drawingTitle}</h1>
             <p className="mt-3 font-display text-xl font-semibold text-forest">
               {pl.event.drawingProgress(drawnCount, state.participants.length)}
             </p>
             <p className="mt-2 text-sm leading-relaxed text-mist">{pl.event.drawingBody}</p>
+            <div className="mt-5 flex flex-wrap gap-3">
+              <PrimaryButton busy={busy && step === 'pick'} disabled={suspended || ceremonyBusy} onClick={startDraw}>
+                {step !== 'pick'
+                  ? pl.event.drawingNow
+                  : selected
+                    ? pl.event.drawFor(animalName(selected.animal))
+                    : pl.event.pickPrompt}
+              </PrimaryButton>
+              <GhostButton
+                disabled={suspended || ceremonyBusy}
+                onClick={() => setSelectedId(cycleUndrawn(state.participants, drawnIds, selectedId, 1))}
+              >
+                {pl.event.nextInCircle}
+              </GhostButton>
+            </div>
           </section>
         ) : null}
 
         {phase === 'DONE' ? (
-          <section className="w-full max-w-md animate-fade-up rounded-3xl bg-paper/95 p-6 text-ink shadow-2xl">
+          <section className="pointer-events-auto w-full max-w-md animate-fade-up rounded-3xl bg-paper/95 p-6 text-ink shadow-2xl">
             <PartyPopper className="text-clay" size={34} aria-hidden="true" />
             <h1 className="mt-2 font-display text-3xl font-semibold">{pl.event.doneTitle}</h1>
             <p className="mt-2 text-sm leading-relaxed text-mist">{pl.event.doneBody}</p>
@@ -219,6 +379,9 @@ export function EventScreen({
                 {pl.event.budgetSaved(formatAmount(state.event.budget, state.event.currency))}
               </p>
             ) : null}
+            <div className="mt-5">
+              <PrimaryButton onClick={onFinish}>{pl.event.finish}</PrimaryButton>
+            </div>
           </section>
         ) : null}
       </main>
@@ -227,6 +390,17 @@ export function EventScreen({
         <span className="text-xs opacity-80">{pl.gate.neverOnEventScreen}</span>
         <MotionToggle />
       </footer>
+
+      {step === 'cover' && pendingGiver && pendingReceiver ? (
+        <CoverOverlay
+          giverName={pendingGiver.name}
+          giverAnimal={pendingGiver.animal}
+          receiverName={pendingReceiver.name}
+          receiverAnimal={pendingReceiver.animal}
+          budgetText={state.event.budget !== null ? formatAmount(state.event.budget, state.event.currency) : null}
+          onClose={finishReveal}
+        />
+      ) : null}
     </div>
   );
 }

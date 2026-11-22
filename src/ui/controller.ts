@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { createCryptoRandom } from '../engine';
+import type { Draw } from '../engine';
 import { createInitialState, StateError } from '../state';
 import type { AppAction, AppState } from '../state';
 import { SecureEventStore, StorageError } from '../storage';
@@ -56,6 +58,8 @@ export interface EventController {
   unlock(password: string): Promise<void>;
   lockApp(): void;
   dispatch(action: AppAction): Promise<AppState>;
+  /** Draws for one participant; the assignment is persisted before it is returned. */
+  drawParticipant(giverId: string): Promise<Draw>;
   undoLastDraw(password: string): Promise<void>;
   resetDrawing(password: string): Promise<void>;
   exportBackup(password: string): Promise<string>;
@@ -175,6 +179,15 @@ export function useEventController(): EventController {
     return next;
   }, [refresh, run, store]);
 
+  const drawParticipant = useCallback(async (giverId: string) => {
+    const result = await run(() => store.draw(giverId, createCryptoRandom(globalThis.crypto)));
+    refresh(result.state);
+    if (result.draw === null) {
+      throw new StateError('UNKNOWN_DRAW', 'Sesja ujawnienia została już zakończona.');
+    }
+    return result.draw;
+  }, [refresh, run, store]);
+
   const undoLastDraw = useCallback(async (password: string) => {
     const next = await run(() => store.undoLastDraw(password, true));
     refresh(next);
@@ -231,6 +244,7 @@ export function useEventController(): EventController {
     unlock,
     lockApp,
     dispatch,
+    drawParticipant,
     undoLastDraw,
     resetDrawing,
     exportBackup,

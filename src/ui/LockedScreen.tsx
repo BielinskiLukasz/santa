@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { KeyRound, LockKeyhole, Mail, ShieldAlert } from 'lucide-react';
+import { CircleHelp, KeyRound, LockKeyhole, Mail, ShieldAlert } from 'lucide-react';
 import { pl } from '../i18n/pl';
 import { StorageError } from '../storage';
 import { errorText } from './controller';
@@ -12,6 +12,7 @@ export function LockedScreen({
   onSetup,
   onUnlock,
   onResetAll,
+  onHelp,
   showNotice,
 }: {
   hasSaved: boolean;
@@ -19,6 +20,7 @@ export function LockedScreen({
   onSetup: (password: string) => Promise<void>;
   onUnlock: (password: string) => Promise<void>;
   onResetAll: () => void;
+  onHelp: () => void;
   showNotice: (kind: 'info' | 'error', text: string) => void;
 }) {
   const [password, setPassword] = useState('');
@@ -75,6 +77,15 @@ export function LockedScreen({
 
   return (
     <div className="relative flex min-h-screen flex-col overflow-hidden bg-night text-cream">
+      <button
+        type="button"
+        onClick={onHelp}
+        aria-label={pl.event.helpButton}
+        title={pl.event.helpButton}
+        className="absolute right-4 top-4 z-10 grid h-10 w-10 place-items-center rounded-full border border-cream/40 transition hover:bg-cream/10"
+      >
+        <CircleHelp size={18} aria-hidden="true" />
+      </button>
       <div aria-hidden="true" className="pointer-events-none absolute inset-0">
         <span className="star absolute left-[12%] top-[16%] h-1.5 w-1.5 rounded-full bg-cream" />
         <span className="star absolute left-[78%] top-[10%] h-1 w-1 rounded-full bg-cream" style={{ animationDelay: '-1.5s' }} />

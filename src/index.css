@@ -136,6 +136,22 @@ button:disabled {
   transition: opacity 1.2s ease;
 }
 
+/* The envelope rises out of the hat during the ceremony. */
+.envelope-rise {
+  animation: envelope-rise 0.7s ease both;
+}
+
+@keyframes envelope-rise {
+  from {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
 .motion-off *,
 .motion-off *::before,
 .motion-off *::after {

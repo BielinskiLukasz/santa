@@ -48,6 +48,35 @@ test('konfiguracja wydarzenia przeżywa odświeżenie po haśle', async ({ page 
   await expect(page.locator('[data-scene]')).toBeVisible();
   await expect(page.locator('[data-animal-slot]')).toHaveCount(7);
   await expect(page.locator('[data-nameplate]').first()).toContainText('Osoba 1');
+
+  // Ceremony: the last animal in the circle draws, the result shows only while held.
+  await page.locator('[data-animal-slot]').nth(6).click();
+  const drawButton = page.getByRole('button', { name: /Losuje:/ });
+  await expect(drawButton).toBeEnabled();
+  await drawButton.click();
+  await expect(page.getByText('Teraz losuje Osoba 7. Reszta odwraca wzrok.')).toBeVisible();
+  await expect(page.locator('[data-reveal]')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Jestem gotowy/a' }).click();
+  const hold = page.getByRole('button', { name: 'Przytrzymaj, aby zobaczyć' });
+  const box = await hold.boundingBox();
+  if (!box) throw new Error('Brak przycisku przytrzymania.');
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await expect(page.locator('[data-reveal]')).toBeVisible();
+  await expect(page.locator('[data-reveal]')).toContainText('Na prezent: 100 zł');
+  await page.mouse.up();
+  await expect(page.locator('[data-reveal]')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Zamknij' }).last().click();
+  await expect(page.locator('[data-badge="drawn"]')).toHaveCount(1);
+  await expect(page.getByText('Gotowe! Wynik zostaje tajemnicą.')).toBeVisible();
+
+  // After a refresh the progress survives and the finished reveal stays closed.
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Odblokuj wydarzenie' })).toBeVisible();
+  await page.getByLabel('Hasło operatora').fill(PASSWORD);
+  await page.getByRole('button', { name: 'Odblokuj', exact: true }).click();
+  await expect(page.getByText('Wylosowało 1 z 7 osób.')).toBeVisible();
+  await expect(page.locator('[data-badge="drawn"]')).toHaveCount(1);
 });
 
 test('po zamknięciu strefy admina na ekranie nie ma listy reguł', async ({ page }) => {
