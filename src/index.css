@@ -15,6 +15,7 @@
   --color-seal: #b45a4a;
   --font-display: "Fraunces", Georgia, serif;
   --font-sans: "DM Sans", Arial, sans-serif;
+  --font-hand: "Caveat", "Segoe Script", cursive;
 }
 
 :root {
@@ -77,6 +78,62 @@ button:disabled {
 
 .star {
   animation: twinkle 4s ease-in-out infinite alternate;
+}
+
+/* Campfire: flicker through opacity and a whisper of scale (ART-SPEC: transform/opacity only). */
+.flame {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: flame-flicker 2.3s ease-in-out infinite alternate;
+}
+
+.flame-inner {
+  animation-duration: 1.7s;
+  animation-delay: -0.6s;
+}
+
+@keyframes flame-flicker {
+  from {
+    opacity: 0.82;
+    transform: scaleY(0.97) rotate(-1.6deg);
+  }
+  to {
+    opacity: 1;
+    transform: scaleY(1.04) rotate(1.6deg);
+  }
+}
+
+.flame-glow {
+  animation: glow-pulse 3.4s ease-in-out infinite alternate;
+}
+
+@keyframes glow-pulse {
+  from {
+    opacity: 0.2;
+  }
+  to {
+    opacity: 0.38;
+  }
+}
+
+/* Snowfall layers drift slowly; each layer gets its own duration inline. */
+.snow-layer {
+  animation: snow-drift 9s ease-in-out infinite alternate;
+}
+
+@keyframes snow-drift {
+  from {
+    transform: translate3d(0, -16px, 0);
+    opacity: 0.5;
+  }
+  to {
+    transform: translate3d(-26px, 30px, 0);
+    opacity: 0.95;
+  }
+}
+
+.garland-bulb {
+  transition: opacity 1.2s ease;
 }
 
 .motion-off *,

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import { KeyRound, Loader2, X } from 'lucide-react';
 import { pl } from '../i18n/pl';
-import { animalInfo } from './animals';
+import { AnimalAvatar } from '../scene/animals';
 
 export function MotionToggle() {
   const [paused, setPaused] = useState(false);
@@ -36,17 +36,7 @@ export function MotionToggle() {
 }
 
 export function AnimalDisc({ animalId, size = 40 }: { animalId: string; size?: number }) {
-  const info = animalInfo(animalId);
-  return (
-    <span
-      aria-hidden="true"
-      className="grid shrink-0 place-items-center rounded-full font-display font-semibold text-ink shadow-inner ring-1 ring-black/10"
-      style={{ width: size, height: size, backgroundColor: info.fur, fontSize: size * 0.42 }}
-      title={info.name}
-    >
-      {info.name.charAt(0)}
-    </span>
-  );
+  return <AnimalAvatar kind={animalId} size={size} />;
 }
 
 export function PrimaryButton({

@@ -39,6 +39,15 @@ test('konfiguracja wydarzenia przeżywa odświeżenie po haśle', async ({ page 
   await page.getByLabel('Hasło operatora').fill(PASSWORD);
   await page.getByRole('button', { name: 'Odblokuj', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Wspólny budżet' })).toBeVisible();
+
+  await page.getByLabel('Kwota na jeden prezent').fill('100');
+  await page.getByRole('button', { name: 'Zatwierdź budżet' }).click();
+  await expect(page.getByText('Na prezent: 100 zł')).toBeVisible();
+  await page.getByRole('button', { name: 'Rozpocznij losowanie' }).click();
+  await expect(page.getByRole('heading', { name: 'Losowanie' })).toBeVisible();
+  await expect(page.locator('[data-scene]')).toBeVisible();
+  await expect(page.locator('[data-animal-slot]')).toHaveCount(7);
+  await expect(page.locator('[data-nameplate]').first()).toContainText('Osoba 1');
 });
 
 test('po zamknięciu strefy admina na ekranie nie ma listy reguł', async ({ page }) => {
