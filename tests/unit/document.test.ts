@@ -8,19 +8,14 @@ import { pl } from '../../src/i18n/pl';
 const source = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), '../../index.html'), 'utf8');
 const page = new DOMParser().parseFromString(source, 'text/html');
 
-describe('Strona startowa', () => {
-  it('ma polski język i nazwę projektu', () => {
+describe('Powłoka aplikacji', () => {
+  it('ma polski język i nazwę projektu w tytule', () => {
     expect(page.documentElement.lang).toBe('pl');
-    expect(page.querySelector('h1')?.textContent?.replace(/\s+/g, '')).toContain(
-      pl.appName.replace(/\s+/g, ''),
-    );
-    expect(page.body.textContent).toContain(pl.phaseZero);
+    expect(page.title).toContain(pl.appName);
   });
 
-  it('zawiera odnośnik do opisu oraz wymagany skrypt Tailwind', () => {
-    expect(page.querySelector('a[href="#projekt"]')).not.toBeNull();
-    expect(
-      page.querySelector('script[src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"]'),
-    ).not.toBeNull();
+  it('montuje aplikację React w elemencie #root', () => {
+    expect(page.querySelector('#root')).not.toBeNull();
+    expect(page.querySelector('script[type="module"][src="/src/main.tsx"]')).not.toBeNull();
   });
 });

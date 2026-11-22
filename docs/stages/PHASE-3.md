@@ -16,32 +16,32 @@
 ## 2. Zadania
 
 ### 2.1 Odblokowanie
-- [ ] Pierwsze uruchomienie: ustawienie hasła (powtórzenie, ostrzeżenie o utracie, min. 8 znaków)
-- [ ] Kolejne uruchomienia: pole hasła, komunikaty bez ujawniania szczegółów, wskaźnik pracy (PBKDF2)
-- [ ] Zapomniane hasło: Reset całości dostępny bez hasła z `LOCKED`, po ostrzeżeniu i wpisaniu `RESET`
+- [x] Pierwsze uruchomienie: ustawienie hasła (powtórzenie, ostrzeżenie o utracie, min. 8 znaków)
+- [x] Kolejne uruchomienia: pole hasła, komunikaty bez ujawniania szczegółów, wskaźnik pracy (PBKDF2)
+- [x] Zapomniane hasło: Reset całości dostępny bez hasła z `LOCKED`, po ostrzeżeniu i wpisaniu `RESET`
 
 ### 2.2 Bramka i strefa admina
-- [ ] Zębatka (lub przytrzymanie znaku) → ponowne wpisanie hasła → strefa admina na 5 minut bezczynności
-- [ ] Strefa nigdy nie jest widoczna na ekranie wydarzenia
+- [x] Zębatka (lub przytrzymanie znaku) → ponowne wpisanie hasła → strefa admina na 5 minut bezczynności
+- [x] Strefa nigdy nie jest widoczna na ekranie wydarzenia
 
 ### 2.3 Formularze konfiguracji
-- [ ] Uczestnicy: dodawanie, edycja imienia, usuwanie; minimum 7, maksimum 12 osób
-- [ ] Zwierzęta: unikalne przypisanie, ręczny wybór lub "losuj domyślnie" (podgląd miniaturki)
-- [ ] Pary: wybór dwóch osób, zakaz w obie strony
-- [ ] Zeszły rok: lista A→B (jednostronne zakazy), wpisywana ręcznie, z walidacją duplikatów (to była permutacja)
-- [ ] Zakazy ręczne: jednostronne
-- [ ] Waluta i zakres wpisywanej kwoty na prezent (domyślnie 10–2000)
-- [ ] Przełącznik "Podgląd admina" z jasnym opisem skutków
+- [x] Uczestnicy: dodawanie, edycja imienia, usuwanie; minimum 7, maksimum 12 osób
+- [x] Zwierzęta: unikalne przypisanie, ręczny wybór lub "losuj domyślnie" (podgląd miniaturki)
+- [x] Pary: wybór dwóch osób, zakaz w obie strony
+- [x] Zeszły rok: lista A→B (jednostronne zakazy), wpisywana ręcznie, z walidacją duplikatów (to była permutacja)
+- [x] Zakazy ręczne: jednostronne
+- [x] Waluta i zakres wpisywanej kwoty na prezent (domyślnie 10–2000)
+- [x] Przełącznik "Podgląd admina" z jasnym opisem skutków
 
 ### 2.4 Zatwierdzenie
-- [ ] `validateSetup` z `ENGINE-SPEC`: sprzeczne reguły blokują zatwierdzenie, komunikat tylko w strefie admina
-- [ ] Podsumowanie: liczby (uczestnicy, pary, zakazy), **bez** wyświetlania reguł poza strefą admina
-- [ ] Zatwierdzenie przenosi do `BUDGET`, gdzie Operator wpisuje wspólnie uzgodnioną kwotę
+- [x] `validateSetup` z `ENGINE-SPEC`: sprzeczne reguły blokują zatwierdzenie, komunikat tylko w strefie admina
+- [x] Podsumowanie: liczby (uczestnicy, pary, zakazy), **bez** wyświetlania reguł poza strefą admina
+- [x] Zatwierdzenie przenosi do `BUDGET`, gdzie Operator wpisuje wspólnie uzgodnioną kwotę
 
 ### 2.5 Pozostałe
-- [ ] Eksport i import kopii (z fazy 2) w UI
-- [ ] Reset losowania i Reset całości z potwierdzeniem frazą `RESET`
-- [ ] Cofnięcie ostatniego losowania po haśle i potwierdzeniu, bez ujawniania odbiorcy; z `DONE` powrót do `DRAWING`
+- [x] Eksport i import kopii (z fazy 2) w UI
+- [x] Reset losowania i Reset całości z potwierdzeniem frazą `RESET`
+- [x] Cofnięcie ostatniego losowania po haśle i potwierdzeniu, bez ujawniania odbiorcy; z `DONE` powrót do `DRAWING`
 
 ## 3. Testy
 
@@ -54,9 +54,9 @@
 | Awaryjny reset | Utracone hasło nie blokuje destrukcyjnego Resetu całości po wpisaniu `RESET` |
 
 ## 4. Kryteria akceptacji
-- [ ] Pełną konfigurację można wprowadzić, zapisać, odtworzyć po odświeżeniu
-- [ ] Sprzeczne reguły blokują start
-- [ ] Reguły nigdy nie pojawiają się poza strefą admina
+- [x] Pełną konfigurację można wprowadzić, zapisać, odtworzyć po odświeżeniu
+- [x] Sprzeczne reguły blokują start
+- [x] Reguły nigdy nie pojawiają się poza strefą admina
 
 ## 5. Ryzyka
 | Ryzyko | Postępowanie |

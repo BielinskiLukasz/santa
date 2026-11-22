@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/BielinskiLukasz/santa/actions/workflows/ci.yml/badge.svg)](https://github.com/BielinskiLukasz/santa/actions/workflows/ci.yml)
 
-Statyczna aplikacja planowana do rodzinnego losowania prezentów. Dostępna jest strona startowa oraz niezależne moduły silnika, stanu i szyfrowanego zapisu. Ekrany konfiguracji i wydarzenia nie są jeszcze zaimplementowane.
+Statyczna aplikacja do rodzinnego losowania prezentów. Zawiera silnik losowania, stan z szyfrowanym zapisem oraz ekrany fazy 3: zakładanie i podawanie hasła (`LOCKED`), strefę admina za bramką (uczestnicy, zwierzęta, zakazy, zeszły rok, budżet i opcje), podsumowanie z zatwierdzeniem oraz kopie i resety. Scena z ceremonią losowania powstanie w fazach 4–5; do tego czasu ekran wydarzenia pokazuje fazę, budżet i status losowania bez wyników.
 
 ## Uruchomienie
 
@@ -27,9 +27,17 @@ npm run build
 npm run preview
 ```
 
-Źródło strony, style i kod interakcji znajdują się w `index.html`. Vite buduje stronę do `dist/index.html`. TypeScript sprawdza konfigurację, testy i przygotowane teksty w `src/i18n/pl.ts`; kod JavaScript osadzony w HTML sprawdza ESLint. Teksty strony startowej są obecnie wpisane bezpośrednio w HTML.
+Aplikację React montuje `src/main.tsx`; ekrany i formularze znajdują się w `src/ui/`, a teksty w `src/i18n/pl.ts`. Vite buduje całość do jednego pliku `dist/index.html`. TypeScript sprawdza kod aplikacji i testy.
 
-Strona startowa korzysta z Tailwind Browser CDN oraz zewnętrznych czcionek. Nie jest to jeszcze wydanie bez dostępu do sieci, które zaplanowano w fazie 7.
+Aplikacja korzysta z zewnętrznych czcionek Google Fonts. Nie jest to jeszcze wydanie bez dostępu do sieci, które zaplanowano w fazie 7.
+
+## Przygotowanie wydarzenia (Operator)
+
+1. Przy pierwszym uruchomieniu ustaw hasło (min. 8 znaków). Bez hasła danych nie da się odzyskać; na ekranie `LOCKED` dostępny jest tylko destrukcyjny Reset całości po wpisaniu `RESET`.
+2. Po odblokowaniu otwiera się strefa admina: dodaj od 7 do 12 uczestników, przydziel unikalne zwierzęta (ręcznie albo przyciskiem „Wylosuj zwierzęta"), wpisz pary, zeszłoroczne przydziały i zakazy ręczne oraz walutę, zakres kwoty i ewentualny podgląd admina.
+3. Zapisz konfigurację. Sprzeczne reguły (np. osoba bez żadnej dopuszczalnej opcji) blokują zatwierdzenie i są opisane wyłącznie w strefie admina.
+4. „Zatwierdź i zacznij" przenosi wydarzenie do fazy budżetu: wpisz wspólnie uzgodnioną kwotę i rozpocznij losowanie. Ceremonia ze sceną pojawi się w fazach 4–5.
+5. Strefę admina otworzysz później zębatką (lub `Ctrl+Shift+A`) po ponownym wpisaniu hasła; zamyka się sama po 5 minutach bezczynności. Znajdziesz tam też podgląd wyników (gdy włączony), eksport/import zaszyfrowanej kopii, cofnięcie ostatniego losowania oraz resety.
 
 ## Silnik losowania
 
