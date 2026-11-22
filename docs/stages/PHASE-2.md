@@ -16,26 +16,26 @@
 ## 2. Zadania
 
 ### 2.1 Stan
-- [ ] Typ `AppState` (wersja, zdarzenie, uczestnicy, zakazy, zeszły rok, uzgodniony budżet, wyniki w kolejności losowania, `revealCompleted`, ustawienia)
-- [ ] Reducer z akcjami: konfiguracja, wpisanie budżetu, losowanie, zakończenie ujawnienia, cofnięcie ostatniego przydziału, resety
-- [ ] Reguły przejść faz i ich odmowy (np. brak losowania poza `DRAWING`)
-- [ ] Fazy `LOCKED` → `SETUP` → `BUDGET` → `DRAWING` → `DONE`; aplikacja nie przechowuje indywidualnych głosów
-- [ ] Po odtworzeniu stanu oznaczyć przerwane sesje ujawnienia jako zakończone, zanim wynik będzie dostępny w interfejsie
+- [x] Typ `AppState` (wersja, zdarzenie, uczestnicy, zakazy, zeszły rok, uzgodniony budżet, wyniki w kolejności losowania, `revealCompleted`, ustawienia)
+- [x] Reducer z akcjami: konfiguracja, wpisanie budżetu, losowanie, zakończenie ujawnienia, cofnięcie ostatniego przydziału, resety
+- [x] Reguły przejść faz i ich odmowy (np. brak losowania poza `DRAWING`)
+- [x] Fazy `LOCKED` → `SETUP` → `BUDGET` → `DRAWING` → `DONE`; aplikacja nie przechowuje indywidualnych głosów
+- [x] Po odtworzeniu stanu oznaczyć przerwane sesje ujawnienia jako zakończone, zanim wynik będzie dostępny w interfejsie
 
 ### 2.2 Zapis i szyfrowanie
-- [ ] Moduł `crypto`: PBKDF2 (SHA-256, ≥ 600 000 iteracji, sól 16 B), AES-256-GCM, IV 12 B, AAD = wersja
-- [ ] Pomiar czasu wyprowadzania klucza na słabszym sprzęcie, korekta iteracji (cel do ~1 s)
-- [ ] Moduł `storage`: zapis jednego zaszyfrowanego bloba, odczyt z weryfikacją (zły klucz = błąd, bez wycieków)
-- [ ] Zapis przy każdej zmianie stanu; debounce tylko dla zmian niekrytycznych. Krytyczne zmiany zapisać przed dopuszczeniem kolejnej akcji
-- [ ] Przydział i `revealCompleted = false` trwale zapisać przed ujawnieniem; nie ujawniać wyniku po błędzie zapisu
-- [ ] Niewrażliwe ustawienia (wyciszenie) jawnie, osobnym kluczem
-- [ ] Migracje: wersjonowanie schematu i funkcje `migrate(vN → vN+1)`
+- [x] Moduł `crypto`: PBKDF2 (SHA-256, ≥ 600 000 iteracji, sól 16 B), AES-256-GCM, IV 12 B, AAD = wersja
+- [x] Pomiar czasu wyprowadzania klucza na słabszym sprzęcie, korekta iteracji (cel do ~1 s)
+- [x] Moduł `storage`: zapis jednego zaszyfrowanego bloba, odczyt z weryfikacją (zły klucz = błąd, bez wycieków)
+- [x] Zapis przy każdej zmianie stanu; debounce tylko dla zmian niekrytycznych. Krytyczne zmiany zapisać przed dopuszczeniem kolejnej akcji
+- [x] Przydział i `revealCompleted = false` trwale zapisać przed ujawnieniem; nie ujawniać wyniku po błędzie zapisu
+- [x] Niewrażliwe ustawienia (wyciszenie) jawnie, osobnym kluczem
+- [x] Migracje: wersjonowanie schematu i funkcje `migrate(vN → vN+1)`
 
 ### 2.3 Kopie i resety
-- [ ] Eksport: plik z zaszyfrowanym blobem
-- [ ] Import: po wpisaniu hasła, z potwierdzeniem nadpisania
-- [ ] "Reset losowania" (wyniki i statusy ujawnienia; budżet zostaje) i "Reset całości" (wszystko), obie operacje atomowe
-- [ ] Reset całości dostępny również na ekranie `LOCKED` bez hasła, po ostrzeżeniu i wpisaniu `RESET`
+- [x] Eksport: plik z zaszyfrowanym blobem
+- [x] Import: po wpisaniu hasła, z potwierdzeniem nadpisania
+- [x] "Reset losowania" (wyniki i statusy ujawnienia; budżet zostaje) i "Reset całości" (wszystko), obie operacje atomowe
+- [x] Reset całości dostępny również na ekranie `LOCKED` bez hasła, po ostrzeżeniu i wpisaniu `RESET`
 
 ## 3. Testy
 
@@ -48,10 +48,10 @@
 | Prywatność | Przeszukanie surowej zawartości `localStorage`: brak imion, wyników i kwot w postaci jawnej |
 
 ## 4. Kryteria akceptacji
-- [ ] Stan przeżywa odświeżenie po poprawnym haśle
-- [ ] Surowa zawartość `localStorage` nie ujawnia danych
-- [ ] Resety i kopie działają i są testowane
-- [ ] Testy w CI zielone
+- [x] Stan przeżywa odświeżenie po poprawnym haśle
+- [x] Surowa zawartość `localStorage` nie ujawnia danych
+- [x] Resety i kopie działają i są testowane
+- [x] Testy w CI zielone
 
 ## 5. Ryzyka
 | Ryzyko | Postępowanie |

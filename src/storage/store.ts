@@ -10,11 +10,14 @@ import {
 } from '../state';
 import type { AppAction, AppState, StateMigrations } from '../state';
 import {
+  calibratePbkdf2Iterations,
   decodeBase64,
   decryptEnvelope,
   derivePasswordKey,
   encryptState,
+  envelopeIterations,
   parseEnvelope,
+  PBKDF2_ITERATIONS,
   randomSalt,
   StorageError,
   validateNewPassword,
@@ -34,6 +37,14 @@ interface OpenedState {
   readonly key: CryptoKey;
   readonly salt: Uint8Array<ArrayBuffer>;
   readonly version: number;
+  readonly iterations: number;
+}
+
+export interface InitializeStoreOptions {
+  // Explicit PBKDF2 iteration count for the new save (stored in the envelope).
+  readonly iterations?: number;
+  // Or measure this device first and pick a count targeting ~1 s (never below 600 000).
+  readonly calibrate?: boolean;
 }
 
 function copyState(state: AppState): AppState {
@@ -49,6 +60,7 @@ function copyState(state: AppState): AppState {
 export class SecureEventStore {
   private key: CryptoKey | null = null;
   private salt: Uint8Array<ArrayBuffer> | null = null;
+  private iterations = PBKDF2_ITERATIONS;
   private current: AppState | null = null;
   private persisted: string | null = null;
   private generation = 0;
@@ -103,11 +115,11 @@ export class SecureEventStore {
     return result;
   }
 
-  private unlocked(): { key: CryptoKey; salt: Uint8Array<ArrayBuffer>; state: AppState; raw: string } {
+  private unlocked(): { key: CryptoKey; salt: Uint8Array<ArrayBuffer>; iterations: number; state: AppState; raw: string } {
     if (!this.key || !this.salt || !this.current || this.persisted === null) {
       throw new StorageError('LOCKED', 'Aplikacja jest zablokowana.');
     }
-    return { key: this.key, salt: this.salt, state: this.current, raw: this.persisted };
+    return { key: this.key, salt: this.salt, iterations: this.iterations, state: this.current, raw: this.persisted };
   }
 
   private unchanged(expected: string | null): void {
@@ -119,14 +131,15 @@ export class SecureEventStore {
   private async open(raw: string, password: string): Promise<OpenedState> {
     const envelope = parseEnvelope(raw);
     const salt = decodeBase64(envelope.salt);
-    const key = await derivePasswordKey(this.runtime, password, salt);
+    const iterations = envelopeIterations(envelope);
+    const key = await derivePasswordKey(this.runtime, password, salt, iterations);
     const payload = await decryptEnvelope(this.runtime, key, envelope);
     if (typeof payload !== 'object' || payload === null || Array.isArray(payload) ||
       (payload as Record<string, unknown>).schemaVersion !== envelope.version) {
       throw new StorageError('INVALID_STATE', 'Nieprawidłowy stan wydarzenia.');
     }
     try {
-      return { state: migrateState(payload, this.migrations), key, salt, version: envelope.version };
+      return { state: migrateState(payload, this.migrations), key, salt, version: envelope.version, iterations };
     } catch (error) {
       if (error instanceof StateError && error.code === 'UNSUPPORTED_VERSION') {
         throw new StorageError('UNSUPPORTED_VERSION', 'Nieobsługiwana wersja zapisu.');
@@ -138,7 +151,7 @@ export class SecureEventStore {
   private async commit(state: AppState, generation: number): Promise<AppState> {
     const session = this.unlocked();
     const snapshot = copyState(state);
-    const encoded = JSON.stringify(await encryptState(this.runtime, session.key, session.salt, snapshot));
+    const encoded = JSON.stringify(await encryptState(this.runtime, session.key, session.salt, snapshot, session.iterations));
     this.checkGeneration(generation);
     this.unchanged(session.raw);
     this.write(STORAGE_KEY, encoded);
@@ -174,7 +187,7 @@ export class SecureEventStore {
     return copyState(this.unlocked().state);
   }
 
-  async initialize(password: string, initialState: AppState): Promise<AppState> {
+  async initialize(password: string, initialState: AppState, options: InitializeStoreOptions = {}): Promise<AppState> {
     validateNewPassword(password);
     const initial = copyState(initialState);
     if (initial.event.phase !== 'SETUP' || initial.draws.length !== 0) {
@@ -184,14 +197,17 @@ export class SecureEventStore {
       if (this.read(STORAGE_KEY) !== null) {
         throw new StorageError('ALREADY_INITIALIZED', 'Zapis już istnieje.');
       }
+      const iterations = options.iterations ??
+        (options.calibrate === true ? await calibratePbkdf2Iterations(this.runtime) : PBKDF2_ITERATIONS);
       const salt = randomSalt(this.runtime);
-      const key = await derivePasswordKey(this.runtime, password, salt);
-      const raw = JSON.stringify(await encryptState(this.runtime, key, salt, initial));
+      const key = await derivePasswordKey(this.runtime, password, salt, iterations);
+      const raw = JSON.stringify(await encryptState(this.runtime, key, salt, initial, iterations));
       this.checkGeneration(generation);
       this.unchanged(null);
       this.write(STORAGE_KEY, raw);
       this.key = key;
       this.salt = salt;
+      this.iterations = iterations;
       this.current = initial;
       this.persisted = raw;
       this.closedReveals.clear();
@@ -210,13 +226,14 @@ export class SecureEventStore {
       const restored = completeInterruptedReveals(opened.state);
       let saved = raw;
       if (restored !== opened.state || opened.version !== CURRENT_SCHEMA_VERSION) {
-        saved = JSON.stringify(await encryptState(this.runtime, opened.key, opened.salt, restored));
+        saved = JSON.stringify(await encryptState(this.runtime, opened.key, opened.salt, restored, opened.iterations));
         this.checkGeneration(generation);
         this.unchanged(raw);
         this.write(STORAGE_KEY, saved);
       }
       this.key = opened.key;
       this.salt = opened.salt;
+      this.iterations = opened.iterations;
       this.current = copyState(restored);
       this.persisted = saved;
       this.closedReveals.clear();
@@ -228,6 +245,7 @@ export class SecureEventStore {
     this.generation++;
     this.key = null;
     this.salt = null;
+    this.iterations = PBKDF2_ITERATIONS;
     this.current = null;
     this.persisted = null;
     this.closedReveals.clear();
@@ -347,13 +365,14 @@ export class SecureEventStore {
       }
       const opened = await this.open(raw, password);
       const restored = completeInterruptedReveals(opened.state);
-      const encoded = JSON.stringify(await encryptState(this.runtime, opened.key, opened.salt, restored));
+      const encoded = JSON.stringify(await encryptState(this.runtime, opened.key, opened.salt, restored, opened.iterations));
       this.checkGeneration(generation);
       this.unchanged(previous);
       this.write(STORAGE_KEY, encoded);
       this.generation++;
       this.key = opened.key;
       this.salt = opened.salt;
+      this.iterations = opened.iterations;
       this.current = copyState(restored);
       this.persisted = encoded;
       this.closedReveals.clear();

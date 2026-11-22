@@ -65,7 +65,7 @@ const result = drawFor(state, 'p0', createCryptoRandom(globalThis.crypto));
 
 `src/state/` zawiera reduktor, walidację stanu i mechanizm rejestrowania migracji schematu. Bieżąca wersja zapisu to 1; ponieważ nie istnieje wcześniejszy oficjalny format, migracje starszych wersji trzeba jawnie dostarczyć. `LOCKED` oznacza zamkniętą sesję magazynu, a zaszyfrowany stan zachowuje ostatnią fazę od `SETUP` do `DONE`.
 
-`src/storage/` udostępnia `SecureEventStore`. Hasło o długości co najmniej 8 znaków jest używane z PBKDF2-SHA-256 (600 000 iteracji) do wyprowadzenia niewyciągalnego klucza AES-256-GCM. Zapis zawiera jedynie wersję, sól, IV i szyfrogram; wyciszenie jest trzymane osobno. Każda zmiana jest zapisywana kolejno, a nowy wynik jest zwracany dopiero po udanym zapisie.
+`src/storage/` udostępnia `SecureEventStore`. Hasło o długości co najmniej 8 znaków jest używane z PBKDF2-SHA-256 (co najmniej 600 000 iteracji) do wyprowadzenia niewyciągalnego klucza AES-256-GCM. Przy zakładaniu hasła liczbę iteracji można dobrać pomiarem na danym urządzeniu (`calibratePbkdf2Iterations`, cel do ok. 1 s); jest wtedy zapisywana w kopercie zapisu, a jej brak oznacza domyślne 600 000. Zapis zawiera jedynie wersję, sól, IV, opcjonalną liczbę iteracji i szyfrogram; wyciszenie jest trzymane osobno. Każda zmiana jest zapisywana kolejno, a nowy wynik jest zwracany dopiero po udanym zapisie.
 
 ```ts
 import { createInitialState } from './src/state';

@@ -2,7 +2,15 @@ import { describe, expect, it } from 'vitest';
 import { createSeededRandom } from '../../../src/engine';
 import { createInitialState } from '../../../src/state';
 import { MUTED_KEY, SecureEventStore, STORAGE_KEY } from '../../../src/storage';
-import { decodeBase64, derivePasswordKey, encodeBase64, parseEnvelope, randomSalt } from '../../../src/storage/crypto';
+import {
+  decodeBase64,
+  derivePasswordKey,
+  encodeBase64,
+  MAX_PBKDF2_ITERATIONS,
+  MIN_PBKDF2_ITERATIONS,
+  parseEnvelope,
+  randomSalt,
+} from '../../../src/storage/crypto';
 import { configuration } from '../state/fixtures';
 import { MemoryStorage, PASSWORD, prepareDrawing } from './fixtures';
 
@@ -254,4 +262,40 @@ describe('Kopie, cofanie i resety', () => {
     expect(store.getMuted()).toBe(true);
     expect(store.isUnlocked()).toBe(false);
   }, 20_000);
+});
+
+describe('Liczba iteracji klucza', () => {
+  it('zapisuje jawną liczbę iteracji i wymaga jej przy każdym odblokowaniu', async () => {
+    const storage = new MemoryStorage();
+    const store = new SecureEventStore(storage, globalThis.crypto);
+    await store.initialize(PASSWORD, createInitialState(2026), { iterations: 900_000 });
+    expect(parseEnvelope(saved(storage)).iterations).toBe(900_000);
+
+    // Later commits must keep the calibrated count in the envelope.
+    await store.dispatch({ type: 'CONFIGURE', configuration: configuration() });
+    expect(parseEnvelope(saved(storage)).iterations).toBe(900_000);
+
+    store.lock();
+    await expect(store.unlock('niepoprawne-haslo')).rejects.toMatchObject({ code: 'AUTH_FAILED' });
+    expect((await store.unlock(PASSWORD)).participants).toHaveLength(7);
+
+    // Removing the stored count falls back to the default and the key no longer matches.
+    store.lock();
+    const tampered = JSON.parse(saved(storage)) as Record<string, unknown>;
+    delete tampered.iterations;
+    storage.setItem(STORAGE_KEY, JSON.stringify(tampered));
+    await expect(store.unlock(PASSWORD)).rejects.toMatchObject({ code: 'AUTH_FAILED' });
+    expect(store.isUnlocked()).toBe(false);
+  }, 30_000);
+
+  it('kalibruje liczbę iteracji przy zakładaniu hasła do zakresu ze specyfikacji', async () => {
+    const storage = new MemoryStorage();
+    const store = new SecureEventStore(storage, globalThis.crypto);
+    await store.initialize(PASSWORD, createInitialState(2026), { calibrate: true });
+    const iterations = parseEnvelope(saved(storage)).iterations ?? MIN_PBKDF2_ITERATIONS;
+    expect(iterations).toBeGreaterThanOrEqual(MIN_PBKDF2_ITERATIONS);
+    expect(iterations).toBeLessThanOrEqual(MAX_PBKDF2_ITERATIONS);
+    store.lock();
+    expect(await store.unlock(PASSWORD)).toEqual(createInitialState(2026));
+  }, 60_000);
 });
