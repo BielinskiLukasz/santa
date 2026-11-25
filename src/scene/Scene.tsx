@@ -342,7 +342,8 @@ export const Scene = memo(function Scene({
           className="snow-layer"
           style={{ animationDuration: layer.duration, animationDelay: `${-layerIndex * 3}s` }}
           fill="#f7f4e8"
-          opacity={layer.opacity}
+          // A gentle brightening of the snowfall celebrates the finale (PHASE-6 polish).
+          opacity={lightsOn ? Math.min(1, layer.opacity + 0.22) : layer.opacity}
         >
           {layer.flakes.map((flake, index) => (
             <circle key={index} cx={flake.x} cy={flake.y} r={layer.radius} />

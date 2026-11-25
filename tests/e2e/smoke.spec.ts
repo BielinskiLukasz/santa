@@ -97,6 +97,24 @@ test('po zamknięciu strefy admina na ekranie nie ma listy reguł', async ({ pag
   await expect(page.locator('body')).not.toContainText('Osoba 1↔Osoba 2');
 });
 
+test('przycisk wyciszenia działa, klawisz M przełącza, a stan przeżywa odświeżenie', async ({ page }) => {
+  await setupPassword(page);
+  await page.getByRole('button', { name: 'Zamknij strefę' }).click();
+  await page.getByRole('button', { name: 'Wycisz dźwięk' }).click();
+  await expect(page.getByRole('button', { name: 'Wyłącz wyciszenie' })).toBeVisible();
+  expect(await page.evaluate(() => window.localStorage.getItem('zwierzeta-losuja:muted'))).toBe('1');
+
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Odblokuj wydarzenie' })).toBeVisible();
+  await page.getByLabel('Hasło operatora').fill(PASSWORD);
+  await page.getByRole('button', { name: 'Odblokuj', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Wyłącz wyciszenie' })).toBeVisible();
+
+  await page.keyboard.press('m');
+  await expect(page.getByRole('button', { name: 'Wycisz dźwięk' })).toBeVisible();
+  expect(await page.evaluate(() => window.localStorage.getItem('zwierzeta-losuja:muted'))).toBe('0');
+});
+
 test('utracone hasło nie blokuje resetu całości po wpisaniu RESET', async ({ page }) => {
   await setupPassword(page);
   await page.getByRole('button', { name: 'Zamknij strefę' }).click();

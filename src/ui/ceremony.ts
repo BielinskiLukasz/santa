@@ -45,5 +45,5 @@ export interface CeremonyTiming {
 // Reduced-motion users get near-instant transitions instead of the walk.
 export function ceremonyTiming(reducedMotion: boolean): CeremonyTiming {
   if (reducedMotion) return { walkMs: 120, envelopeMs: 120, returnMs: 120 };
-  return { walkMs: 1500, envelopeMs: 1000, returnMs: 1100 };
+  return { walkMs: 1600, envelopeMs: 1150, returnMs: 1200 };
 }

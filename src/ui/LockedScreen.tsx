@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { CircleHelp, KeyRound, LockKeyhole, Mail, ShieldAlert } from 'lucide-react';
+import { CircleHelp, KeyRound, LockKeyhole, Mail, ShieldAlert, Volume2, VolumeX } from 'lucide-react';
 import { pl } from '../i18n/pl';
 import { StorageError } from '../storage';
 import { errorText } from './controller';
@@ -9,6 +9,8 @@ import { DangerButton, Field, MotionToggle, PrimaryButton, inputClass } from './
 export function LockedScreen({
   hasSaved,
   busy,
+  muted,
+  onToggleMute,
   onSetup,
   onUnlock,
   onResetAll,
@@ -17,6 +19,8 @@ export function LockedScreen({
 }: {
   hasSaved: boolean;
   busy: boolean;
+  muted: boolean;
+  onToggleMute: () => void;
   onSetup: (password: string) => Promise<void>;
   onUnlock: (password: string) => Promise<void>;
   onResetAll: () => void;
@@ -209,8 +213,18 @@ export function LockedScreen({
         </div>
       </main>
 
-      <footer className="relative flex justify-center pb-6 text-cream">
+      <footer className="relative flex items-center justify-between px-5 pb-6 text-cream">
         <MotionToggle />
+        <button
+          type="button"
+          onClick={onToggleMute}
+          aria-label={muted ? pl.common.unmute : pl.common.mute}
+          aria-pressed={muted}
+          title={muted ? pl.common.unmute : pl.common.mute}
+          className="grid h-10 w-10 place-items-center rounded-full border border-cream/40 transition hover:bg-cream/10"
+        >
+          {muted ? <VolumeX size={18} aria-hidden="true" /> : <Volume2 size={18} aria-hidden="true" />}
+        </button>
       </footer>
     </div>
   );

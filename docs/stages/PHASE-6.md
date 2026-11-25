@@ -15,17 +15,17 @@
 ## 2. Zadania
 
 ### 2.1 Dźwięk
-- [ ] Moduł `audio` z jednym `AudioContext`, uruchamianym po pierwszym geście (wpisanie hasła)
-- [ ] Muzyka: oryginalna, spokojna pętla w stylu pozytywki (generatywna: skala pentatoniczna, wolne tempo, pogłos), niska głośność
-- [ ] Efekty: trzask ogniska (przefiltrowany szum), szelest koperty, "plum" pieczęci, dzwoneczek na zakończenie
-- [ ] Efekty identyczne dla każdego losowania (nie zdradzają wyniku)
-- [ ] Wyciszenie: ikona i klawisz `M`, stan zapisany (niewrażliwy)
-- [ ] Obsługa wstrzymania karty (wyciszenie przy ukryciu karty)
+- [x] Moduł `audio` z jednym `AudioContext`, uruchamianym po pierwszym geście (wpisanie hasła)
+- [x] Muzyka: oryginalna, spokojna pętla w stylu pozytywki (generatywna: skala pentatoniczna, wolne tempo, pogłos), niska głośność
+- [x] Efekty: trzask ogniska (przefiltrowany szum), szelest koperty, "plum" pieczęci, dzwoneczek na zakończenie
+- [x] Efekty identyczne dla każdego losowania (nie zdradzają wyniku)
+- [x] Wyciszenie: ikona i klawisz `M`, stan zapisany (niewrażliwy)
+- [x] Obsługa wstrzymania karty (wyciszenie przy ukryciu karty)
 
 ### 2.2 Dopieszczenie
-- [ ] Płynność ceremonii (czasy, zatrzymania, ease), brak migotania
-- [ ] Zakończenie: światełka, delikatny rozbłysk śniegu
-- [ ] Przegląd wszystkich animacji pod kątem `prefers-reduced-motion`
+- [x] Płynność ceremonii (czasy, zatrzymania, ease), brak migotania
+- [x] Zakończenie: światełka, delikatny rozbłysk śniegu
+- [x] Przegląd wszystkich animacji pod kątem `prefers-reduced-motion`
 
 ## 3. Testy
 
@@ -36,9 +36,9 @@
 | E2E | Przycisk wyciszenia działa i zapamiętuje stan |
 
 ## 4. Kryteria akceptacji
-- [ ] Dźwięk startuje dopiero po geście i można go wyciszyć w każdym momencie
-- [ ] Brak plików audio w paczce
-- [ ] Efekty nie ujawniają żadnych informacji o wyniku
+- [x] Dźwięk startuje dopiero po geście i można go wyciszyć w każdym momencie
+- [x] Brak plików audio w paczce
+- [x] Efekty nie ujawniają żadnych informacji o wyniku
 
 ## 5. Ryzyka
 | Ryzyko | Postępowanie |

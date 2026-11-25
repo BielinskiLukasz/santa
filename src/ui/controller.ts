@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createCryptoRandom } from '../engine';
 import type { Draw } from '../engine';
+import { SoundEngine } from '../audio';
 import { createInitialState, StateError } from '../state';
 import type { AppAction, AppState } from '../state';
 import { SecureEventStore, StorageError } from '../storage';
@@ -42,10 +43,19 @@ function browserStorage(): StorageAdapter {
   }
 }
 
+export interface SoundEffects {
+  rustle(): void;
+  seal(): void;
+  bell(): void;
+}
+
 export interface EventController {
   readonly screen: Screen;
   readonly hasSaved: boolean;
   readonly state: AppState | null;
+  readonly muted: boolean;
+  toggleMute(): void;
+  readonly soundEffects: SoundEffects;
   /** Increments after every persisted change; remounts the admin draft with fresh data. */
   readonly stateEpoch: number;
   readonly busy: boolean;
@@ -77,6 +87,11 @@ export function useEventController(): EventController {
     storeRef.current = new SecureEventStore(browserStorage(), globalThis.crypto);
   }
   const store = storeRef.current;
+  const soundRef = useRef<SoundEngine | null>(null);
+  if (soundRef.current === null) {
+    soundRef.current = new SoundEngine({ muted: store.getMuted() });
+  }
+  const sound = soundRef.current;
 
   const [screen, setScreen] = useState<Screen>('booting');
   const [hasSaved, setHasSaved] = useState(false);
@@ -86,7 +101,35 @@ export function useEventController(): EventController {
   const [notice, setNotice] = useState<Notice | null>(null);
   const [adminOpen, setAdminOpen] = useState(false);
   const [gateOpen, setGateOpen] = useState(false);
+  const [muted, setMuted] = useState(() => store.getMuted());
   const lastActivityRef = useRef(0);
+
+  const toggleMute = useCallback(() => {
+    setMuted((current) => {
+      const next = !current;
+      sound.setMuted(next);
+      store.setMuted(next);
+      return next;
+    });
+  }, [sound, store]);
+
+  const soundEffects = useMemo<SoundEffects>(
+    () => ({
+      rustle: () => sound.envelopeRustle(),
+      seal: () => sound.sealPlop(),
+      bell: () => sound.celebrationBell(),
+    }),
+    [sound],
+  );
+
+  // Hidden tab: silence (PHASE-6). Visible again: resume where we left off.
+  useEffect(() => {
+    const onVisibility = () => {
+      void sound.setDocumentHidden(document.hidden);
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, [sound]);
 
   const showNotice = useCallback((kind: Notice['kind'], text: string) => {
     setNotice({ kind, text });
@@ -156,13 +199,16 @@ export function useEventController(): EventController {
   const setupPassword = useCallback(async (password: string) => {
     const next = await run(() =>
       store.initialize(password, createInitialState(new Date().getFullYear()), { calibrate: true }));
+    // First gesture: the password submit starts the single AudioContext (PHASE-6).
+    void sound.unlock();
     enterApp(next);
-  }, [enterApp, run, store]);
+  }, [enterApp, run, sound, store]);
 
   const unlock = useCallback(async (password: string) => {
     const next = await run(() => store.unlock(password));
+    void sound.unlock();
     enterApp(next);
-  }, [enterApp, run, store]);
+  }, [enterApp, run, sound, store]);
 
   const lockApp = useCallback(() => {
     store.lock();
@@ -233,6 +279,9 @@ export function useEventController(): EventController {
     screen,
     hasSaved,
     state,
+    muted,
+    toggleMute,
+    soundEffects,
     stateEpoch,
     busy,
     notice,

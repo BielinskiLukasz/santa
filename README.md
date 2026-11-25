@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/BielinskiLukasz/santa/actions/workflows/ci.yml/badge.svg)](https://github.com/BielinskiLukasz/santa/actions/workflows/ci.yml)
 
-Statyczna aplikacja do rodzinnego losowania prezentów. Zawiera silnik losowania, stan z szyfrowanym zapisem, ekrany konfiguracji (hasło `LOCKED`, strefa admina za bramką, kopie i resety), zimową scenę z kręgiem rysowanych zwierząt przy ognisku oraz pełny przebieg wydarzenia: wpisanie wspólnie uzgodnionego budżetu, ceremonię losowania z kapeluszem i kopertą, prywatny tryb „zasłoń" (wynik tylko podczas przytrzymania) i podsumowanie ze światełkami. Do zrobienia zostały dźwięk (faza 6) i wydanie offline (faza 7).
+Statyczna aplikacja do rodzinnego losowania prezentów. Zawiera silnik losowania, stan z szyfrowanym zapisem, ekrany konfiguracji (hasło `LOCKED`, strefa admina za bramką, kopie i resety), zimową scenę z kręgiem rysowanych zwierząt przy ognisku, pełny przebieg wydarzenia (budżet, ceremonia losowania z trybem „zasłoń", podsumowanie) oraz generowany w przeglądarce dźwięk: spokojną pozytywkę, trzask ogniska i efekty ceremonii (bez plików audio). Do zrobienia zostało wydanie offline (faza 7) i opcjonalne dodatki (faza 8).
 
 ## Uruchomienie
 
@@ -37,7 +37,7 @@ Aplikacja korzysta z zewnętrznych czcionek Google Fonts. Nie jest to jeszcze wy
 2. Po odblokowaniu otwiera się strefa admina: dodaj od 7 do 12 uczestników, przydziel unikalne zwierzęta (ręcznie albo przyciskiem „Wylosuj zwierzęta"), wpisz pary, zeszłoroczne przydziały i zakazy ręczne oraz walutę, zakres kwoty i ewentualny podgląd admina.
 3. Zapisz konfigurację. Sprzeczne reguły (np. osoba bez żadnej dopuszczalnej opcji) blokują zatwierdzenie i są opisane wyłącznie w strefie admina.
 4. „Zatwierdź i zacznij" przenosi wydarzenie do fazy budżetu: wpisz wspólnie uzgodnioną kwotę i rozpocznij losowanie. Zwierzęta zasiądą wtedy w kręgu na polanie, a kwota pojawi się na drewnianej tablicy.
-5. Podczas wydarzenia wskazuj po kolei zwierzątka (klik, strzałki albo „Następne w kręgu") i naciskaj główny przycisk. Zwierzątko podejdzie do kapelusza, wyciągnie kopertę i samo — po przytrzymaniu przycisku w trybie „zasłoń" — zobaczy, komu kupuje prezent. Pomoc pod przyciskiem `?` opisuje całe sterowanie.
+5. Podczas wydarzenia wskazuj po kolei zwierzątka (klik, strzałki albo „Następne w kręgu") i naciskaj główny przycisk. Zwierzątko podejdzie do kapelusza, wyciągnie kopertę i samo — po przytrzymaniu przycisku w trybie „zasłoń" — zobaczy, komu kupuje prezent. Pomoc pod przyciskiem `?` opisuje całe sterowanie. Dźwięk (pozytywka i ognisko) startuje po wpisaniu hasła; wyciszysz go ikoną głośnika albo klawiszem `M`, a wybór zapamięta się na kolejne uruchomienia.
 6. Strefę admina otworzysz później zębatką (lub `Ctrl+Shift+A`) po ponownym wpisaniu hasła; zamyka się sama po 5 minutach bezczynności. Znajdziesz tam też podgląd wyników (gdy włączony), eksport/import zaszyfrowanej kopii, cofnięcie ostatniego losowania oraz resety.
 
 ## Silnik losowania

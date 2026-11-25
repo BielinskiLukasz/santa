@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
-import { CircleHelp, Lock, Mail, PartyPopper, Settings } from 'lucide-react';
+import { CircleHelp, Lock, Mail, PartyPopper, Settings, Volume2, VolumeX } from 'lucide-react';
 import { validateBudget } from '../engine';
 import type { Draw } from '../engine';
 import type { AppAction, AppState } from '../state';
@@ -9,6 +9,7 @@ import { animalName } from './animals';
 import { ceremonyTiming, cycleUndrawn } from './ceremony';
 import { CoverOverlay } from './CoverOverlay';
 import { errorText } from './controller';
+import type { SoundEffects } from './controller';
 import { Scene } from '../scene/Scene';
 import { Field, GhostButton, MotionToggle, PrimaryButton, inputClass } from './widgets';
 
@@ -113,6 +114,9 @@ export function EventScreen({
   state,
   busy,
   suspended,
+  muted,
+  onToggleMute,
+  soundEffects,
   onOpenAdmin,
   onHelp,
   onDispatch,
@@ -124,6 +128,9 @@ export function EventScreen({
   state: AppState;
   busy: boolean;
   suspended: boolean;
+  muted: boolean;
+  onToggleMute: () => void;
+  soundEffects: SoundEffects;
   onOpenAdmin: () => void;
   onHelp: () => void;
   onDispatch: Dispatch;
@@ -169,6 +176,13 @@ export function EventScreen({
       finishingRef.current = false;
     }
   }, [phase]);
+
+  // The finale bell rings exactly once, when the last reveal completes.
+  const prevPhaseRef = useRef(phase);
+  useEffect(() => {
+    if (prevPhaseRef.current !== 'DONE' && phase === 'DONE') soundEffects.bell();
+    prevPhaseRef.current = phase;
+  }, [phase, soundEffects]);
 
   const select = useCallback(
     (participantId: string) => {
@@ -221,7 +235,10 @@ export function EventScreen({
       return;
     }
     setPending({ giverId, receiverId: draw.receiverId });
-    later(() => setStep('envelope'), timing.walkMs);
+    later(() => {
+      setStep('envelope');
+      soundEffects.rustle();
+    }, timing.walkMs);
     later(() => setStep('cover'), timing.walkMs + timing.envelopeMs);
   };
 
@@ -301,6 +318,16 @@ export function EventScreen({
           <span className="rounded-full border border-cream/40 bg-night/30 px-3 py-1 text-xs font-bold uppercase tracking-wider">
             {pl.event.phaseNames[phase] ?? phase}
           </span>
+          <button
+            type="button"
+            onClick={onToggleMute}
+            aria-label={muted ? pl.common.unmute : pl.common.mute}
+            aria-pressed={muted}
+            title={muted ? pl.common.unmute : pl.common.mute}
+            className="grid h-10 w-10 place-items-center rounded-full border border-cream/40 bg-night/30 transition hover:bg-cream/10"
+          >
+            {muted ? <VolumeX size={18} aria-hidden="true" /> : <Volume2 size={18} aria-hidden="true" />}
+          </button>
           <button
             type="button"
             onClick={onHelp}
@@ -398,6 +425,7 @@ export function EventScreen({
           receiverName={pendingReceiver.name}
           receiverAnimal={pendingReceiver.animal}
           budgetText={state.event.budget !== null ? formatAmount(state.event.budget, state.event.currency) : null}
+          onReady={soundEffects.seal}
           onClose={finishReveal}
         />
       ) : null}

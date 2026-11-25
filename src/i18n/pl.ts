@@ -16,6 +16,8 @@ export const pl = {
     motionStop: 'Zatrzymaj animacje',
     motionStart: 'Włącz animacje',
     motionReduced: 'Ruch ograniczony w ustawieniach systemu',
+    mute: 'Wycisz dźwięk',
+    unmute: 'Wyłącz wyciszenie',
   },
 
   locked: {
@@ -192,7 +194,7 @@ export const pl = {
       ['Wybór zwierzątka', 'Klik lub dotknięcie zwierzątka', 'Strzałki ← → albo Tab, potem Enter'],
       ['Główny przycisk', 'Klik lub dotknięcie', 'Enter lub Spacja'],
       ['Przytrzymaj, aby zobaczyć', 'Przytrzymanie przycisku myszą lub palcem', 'Przytrzymanie Spacji'],
-      ['Wyciszenie dźwięku', 'Ikona głośnika (faza 6)', 'M'],
+      ['Wyciszenie dźwięku', 'Ikona głośnika', 'M'],
       ['Pomoc', 'Przycisk ?', '? lub F1'],
       ['Strefa admina', 'Zębatka (wymaga hasła)', 'Ctrl+Shift+A (wymaga hasła)'],
     ] as readonly (readonly [string, string, string])[],

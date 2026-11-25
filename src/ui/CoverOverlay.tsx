@@ -18,6 +18,7 @@ export function CoverOverlay({
   receiverName,
   receiverAnimal,
   budgetText,
+  onReady,
   onClose,
 }: {
   giverName: string;
@@ -25,6 +26,8 @@ export function CoverOverlay({
   receiverName: string;
   receiverAnimal: string;
   budgetText: string | null;
+  /** Fired when the participant confirms readiness (seal "plum" moment). */
+  onReady?: () => void;
   onClose: () => void;
 }) {
   const [ready, setReady] = useState(false);
@@ -90,7 +93,14 @@ export function CoverOverlay({
               {pl.ceremony.coverTitle(giverName)}
             </h2>
             <div className="mt-7 flex flex-wrap justify-center gap-3">
-              <PrimaryButton onClick={() => setReady(true)}>{pl.ceremony.ready}</PrimaryButton>
+              <PrimaryButton
+                onClick={() => {
+                  setReady(true);
+                  onReady?.();
+                }}
+              >
+                {pl.ceremony.ready}
+              </PrimaryButton>
               <GhostButton onClick={close}>{pl.ceremony.close}</GhostButton>
             </div>
           </>

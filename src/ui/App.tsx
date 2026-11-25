@@ -22,6 +22,9 @@ export default function App() {
     gateOpen,
     showNotice,
     clearNotice,
+    muted,
+    toggleMute,
+    soundEffects,
     setupPassword,
     unlock,
     lockApp,
@@ -53,11 +56,16 @@ export default function App() {
       if (!editing && (event.key === '?' || event.key === 'F1')) {
         event.preventDefault();
         setHelpOpen(true);
+        return;
+      }
+      // UI-SPEC §7: M toggles sound, unless the operator is typing somewhere.
+      if (!editing && !event.ctrlKey && !event.metaKey && !event.altKey && event.key.toLowerCase() === 'm') {
+        toggleMute();
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [requestAdmin]);
+  }, [requestAdmin, toggleMute]);
 
   const openHelp = () => setHelpOpen(true);
   const suspended = adminOpen || gateOpen || helpOpen;
@@ -101,6 +109,8 @@ export default function App() {
         <LockedScreen
           hasSaved={hasSaved}
           busy={busy}
+          muted={muted}
+          onToggleMute={toggleMute}
           onSetup={setupPassword}
           onUnlock={unlock}
           onResetAll={resetAll}
@@ -113,6 +123,9 @@ export default function App() {
             state={state}
             busy={busy}
             suspended={suspended}
+            muted={muted}
+            onToggleMute={toggleMute}
+            soundEffects={soundEffects}
             onOpenAdmin={requestAdmin}
             onHelp={openHelp}
             onDispatch={dispatch}
